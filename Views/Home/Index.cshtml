@@ -1,0 +1,77 @@
+﻿
+@{
+    ViewBag.Title = "Простой web-chat";
+}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="page-header">
+                <h1>Веб чат </h1>
+                <strong>Ваше имя:</strong><p data-bind="text: $data.name"></p>
+            </div>
+
+            <div id="chatbox" style="max-height: 100px; width: 550px; overflow-y: scroll;">
+                <ul data-bind="foreach: messages">
+                    <li>
+                        <strong data-bind="text: $data.userName"></strong>
+                        <p data-bind="text: $data.text"></p>
+                    </li>
+                </ul>
+            </div>
+            <form class="navbar-form navbar-left">
+                <div class="row m-2">
+                    <div class="form-group">
+                        <input data-bind="textInput: message" class="form-control" style="width:450px" placeholder="Сообщение" />
+                    </div>
+                    <button data-bind="click: sendClick" class="btn btn-default">Отправить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+@section scripts {
+    <!-- SignalR -->
+    <script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+
+    <!-- knockoutJs -->
+    <script src="~/Scripts/knockout-3.5.1.js"></script>
+
+    <script type="text/javascript">
+
+        var Message = function (name, text) {
+            this.userName = name;
+            this.text = text;
+        };
+
+        function ViewModel() {
+            var chat = $.connection.webChatHub;
+
+            chat.client.send = function (from, message) {
+                vm.messages.unshift(new Message(from, message))
+            };
+
+            this.name = ko.observable("");
+            this.message = ko.observable("Привет мир!!!");
+            this.messages = ko.observableArray();
+
+            this.name(prompt('Введите ваше имя:', 'Гость'));
+            sendClick = function () {
+                if (this.name().length > 0) {
+                    if (this.message().length > 0) {                      
+                        chat.server.send(this.name(), this.message());
+                        this.message("");
+                    }                        
+                }
+                else
+                    this.name(prompt('Введите ваше имя:', 'Гость'));                
+            }
+        };
+
+        var vm = new ViewModel();
+        ko.applyBindings(vm);
+        $.connection.hub.start().done();
+    </script>
+}
